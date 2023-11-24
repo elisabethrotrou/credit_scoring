@@ -29,7 +29,9 @@ def get_old_data(cols) -> pd.DataFrame:
     return df
 
 def get_new_data() -> pd.DataFrame:
-    return pd.read_csv('./input/application_test.csv')
+    df = pd.read_csv('./input/application_test.csv')
+    df = df[:1000] #sampling data to match with test data passed in shap_values
+    return df
 
 def prep_data(df, cols):
     df = df[df['CODE_GENDER'] != 'XNA']
@@ -39,18 +41,19 @@ def prep_data(df, cols):
     for bin_feature in ['CODE_GENDER', 'FLAG_OWN_CAR', 'FLAG_OWN_REALTY']:
         df[bin_feature], uniques = pd.factorize(df[bin_feature])
 
+    df = df.rename(columns = lambda x:re.sub('[^A-Za-z0-9_]+', '', x))
+
+    df = df[cols]
+
     # NaN values for DAYS_EMPLOYED: 365.243 -> nan
     df['DAYS_EMPLOYED'].replace(365243, np.nan, inplace= True)
     # Some simple new features (percentages)
     df['DAYS_EMPLOYED_PERC'] = df['DAYS_EMPLOYED'] / df['DAYS_BIRTH']
     df['INCOME_CREDIT_PERC'] = df['AMT_INCOME_TOTAL'] / df['AMT_CREDIT']
-    df['INCOME_PER_PERSON'] = df['AMT_INCOME_TOTAL'] / df['CNT_FAM_MEMBERS']
-    df['ANNUITY_INCOME_PERC'] = df['AMT_ANNUITY'] / df['AMT_INCOME_TOTAL']
-    df['PAYMENT_RATE'] = df['AMT_ANNUITY'] / df['AMT_CREDIT']
+    #df['INCOME_PER_PERSON'] = df['AMT_INCOME_TOTAL'] / df['CNT_FAM_MEMBERS']
+    #df['ANNUITY_INCOME_PERC'] = df['AMT_ANNUITY'] / df['AMT_INCOME_TOTAL']
+    #df['PAYMENT_RATE'] = df['AMT_ANNUITY'] / df['AMT_CREDIT']
    
-    df = df.rename(columns = lambda x:re.sub('[^A-Za-z0-9_]+', '', x))
-
-    df = df[cols]
     return df
 
 model_features = ['AMT_CREDIT','AMT_INCOME_TOTAL','CNT_CHILDREN','CODE_GENDER','DAYS_BIRTH','DAYS_EMPLOYED',
@@ -73,29 +76,23 @@ transformed_new_df = prep_data(new_df, model_features)
 st.title("Client scoring dashboard")
 
 # top-level filters / radio buttons
-
-#accessibility, buffer = st.columns(2)
-#with accessibility:
-#    st.checkbox("BIG FONT")
-#    text_size = st.slider('How big do you need the text to be?', 1, 200)
-
 filter, buffer, score, risk = st.columns([1,1,1,1])
 
 with filter:
     application_filter = st.selectbox("Select an application from the list below", pd.unique(new_df["SK_ID_CURR"]))
     index_candidate = new_df.index[new_df['SK_ID_CURR'] == application_filter].tolist()
 
-
 # predictions from model via API call (via FastAPI)
 
-#url = 'http://127.0.0.1:8000/scoring_prediction'
+url = 'http://127.0.0.1:8000/scoring_prediction'
 
-#transformed_candidate_data = transformed_new_df.loc[index_candidate]
+transformed_candidate_data = transformed_new_df.loc[index_candidate]
 
-#response = requests.post(url, json=transformed_candidate_data.to_dict(orient='records')[0])
+pred_response = requests.post(url, json=transformed_candidate_data.to_dict(orient='records')[0])
 
-#default_proba = response.content.decode()
-default_proba = 0.2 #float(default_proba)
+default_proba = pred_response.content.decode()
+
+default_proba = float(default_proba)
 
 default_threshold = 0.3
 
@@ -154,14 +151,24 @@ with application.container():
     with shap:
         st.markdown("### Decision explanation")
 
+        st.write("candidate indice to call for shape values:", index_candidate[0])
+
+        # explanation from model via API call (via FastAPI)
+
+        exp_url = 'http://127.0.0.1:8000/scoring_explanation'
+
+        exp_response = requests.post(url, data=index_candidate[0])
+
+        candidate_shap_values = exp_response.content.decode()
+
         # function enabling shap plot in html
         def st_shap(plot, height=None):
             shap_html = f"<head>{shap.getjs()}</head><body>{plot.html()}</body>"
             components.html(shap_html, height=height)
 
         # visualize the candidate's decision explanation
-        #st_shap(shap.force_plot(explainer.expected_value[0], np.array(shap_values[0]), transformed_candidate_data,
-        #                        link='logit', out_names='risque de défaut'), height=400)
+        st_shap(shap.force_plot(default_proba, candidate_shap_values, transformed_candidate_data,
+                                link='logit', out_names='risque de défaut'), height=400)
             
 
 # single-element container
