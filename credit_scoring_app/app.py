@@ -2,9 +2,11 @@ import time
 import numpy as np  # np mean, np random
 import pandas as pd  # read csv, df manipulation
 import plotly.express as px  # interactive charts
+import matplotlib.pyplot as plt
 import streamlit as st  # 🎈 data web app development
 import requests # for API calls
 import shap
+from streamlit_shap import st_shap
 import streamlit.components.v1 as components
 import json
 import re
@@ -21,11 +23,9 @@ st.set_page_config(
 
 # read csv from a URL
 @st.cache_data
-
-
 def get_old_data(cols) -> pd.DataFrame:
     df = pd.read_csv('./input/application_train.csv', usecols=cols)
-    df = df[:100000] #sampling data to fit within limit (maxMessageSize = 300) since no access to config
+    df = df[:10000] #sampling data to fit within limit (maxMessageSize = 300) since no access to config
     return df
 
 def get_new_data() -> pd.DataFrame:
@@ -68,109 +68,120 @@ model_features = ['AMT_CREDIT','AMT_INCOME_TOTAL','CNT_CHILDREN','CODE_GENDER','
          'REGION_POPULATION_RELATIVE', 'REGION_RATING_CLIENT', 'REGION_RATING_CLIENT_W_CITY', 'REG_CITY_NOT_LIVE_CITY',
          'REG_CITY_NOT_WORK_CITY', 'REG_REGION_NOT_LIVE_REGION', 'REG_REGION_NOT_WORK_REGION','WEEKDAY_APPR_PROCESS_START']
 
-old_df = get_old_data(model_features)
 new_df = get_new_data()
 transformed_new_df = prep_data(new_df, model_features)
 
 # dashboard title
 st.title("Client scoring dashboard")
 
+st.markdown("### Application")
 # top-level filters / radio buttons
-filter, buffer, score, risk = st.columns([1,1,1,1])
+filter, buffer, info1, info2 = st.columns([2,1,2,2])
 
 with filter:
     application_filter = st.selectbox("Select an application from the list below", pd.unique(new_df["SK_ID_CURR"]))
     index_candidate = new_df.index[new_df['SK_ID_CURR'] == application_filter].tolist()
 
-# predictions from model via API call (via FastAPI)
-
-url = 'http://127.0.0.1:8000/scoring_prediction'
-
-transformed_candidate_data = transformed_new_df.loc[index_candidate]
-
-pred_response = requests.post(url, json=transformed_candidate_data.to_dict(orient='records')[0])
-
-default_proba = pred_response.content.decode()
-
-default_proba = float(default_proba)
-
-default_threshold = 0.3
-
-decision = "NO ❌" if default_proba >= default_threshold else "YES ✅"
-
 # info from dataframe
 age = -int(new_df.loc[new_df["SK_ID_CURR"] == application_filter,"DAYS_BIRTH"]/365)
-gender = new_df.loc[new_df["SK_ID_CURR"] == application_filter]["CODE_GENDER"].iloc[0]
-family = new_df.loc[new_df["SK_ID_CURR"] == application_filter,"NAME_FAMILY_STATUS"].iloc[0]
+#gender = new_df.loc[new_df["SK_ID_CURR"] == application_filter]["CODE_GENDER"].iloc[0]
+#family = new_df.loc[new_df["SK_ID_CURR"] == application_filter,"NAME_FAMILY_STATUS"].iloc[0]
 education = new_df.loc[new_df["SK_ID_CURR"] == application_filter,"NAME_EDUCATION_TYPE"].iloc[0]
-income = new_df.loc[new_df["SK_ID_CURR"] == application_filter,"NAME_INCOME_TYPE"].iloc[0]
+region_disc = new_df.loc[new_df["SK_ID_CURR"] == application_filter,"REG_REGION_NOT_LIVE_REGION"].iloc[0]
+region_pop = new_df.loc[new_df["SK_ID_CURR"] == application_filter,"REGION_POPULATION_RELATIVE"].iloc[0]
+credit = new_df.loc[new_df["SK_ID_CURR"] == application_filter,"AMT_CREDIT"].iloc[0] 
+tenure = -int(new_df.loc[new_df["SK_ID_CURR"] == application_filter,"DAYS_EMPLOYED"]/365)
+income = new_df.loc[new_df["SK_ID_CURR"] == application_filter,"AMT_INCOME_TOTAL"].iloc[0] 
+income_type = new_df.loc[new_df["SK_ID_CURR"] == application_filter,"NAME_INCOME_TYPE"].iloc[0]
 realty = new_df.loc[new_df["SK_ID_CURR"] == application_filter,"FLAG_OWN_REALTY"].iloc[0]
 car = new_df.loc[new_df["SK_ID_CURR"] == application_filter,"FLAG_OWN_CAR"].iloc[0]
 
-with score:
-    # fill in those columns with respective metrics or info
-    score.metric(
-        label="Lending decision",
-        value = decision
-        #delta=round(avg_age) - 10,
-    )
-
-with risk:        
-    risk.metric(
-        label="Default risk level",
-        value="{:.0%}".format(default_proba),
-        delta="{:.0%}".format(default_proba-default_threshold) + " vs threshold",
-        delta_color="inverse"
-    )
-
-
-
-# single-element container
-application = st.empty()
-
-with application.container():
-
-    #two columns
-    info, shap = st.columns([2,2])
-
-    with info:
-
-        st.write("### Application details")
+with info1:
         st.write(age, "years old", 
-                family, gender, "with", education)
+                "with", education)
         #st.write("*Applicant* is a", )
         #st.write("*Applicant* marital status is", )
         #st.write("*Applicant* education level is", education)
-        st.write("income earned", income)
+        st.write("living in a region of", region_pop, "density level")
+        if region_disc == 1: st.write("🚨 warning on address discrepancy")
+        st.write("already involved with a credit of", credit)
+
+with info2:
+        st.write("employed for past", tenure, "years")
+        st.write("earning a yearly income of", income,
+                 "from", income_type)
         #st.write("*Applicant* income type is", income)
         if realty == "Y": st.write("owns their home")
         else: st.write("does not own their home")
         if car == "Y": st.write("owns their car")
         else: st.write("does not own their car")
 
-    with shap:
-        st.markdown("### Decision explanation")
+st.divider()
 
-        st.write("candidate indice to call for shape values:", index_candidate[0])
+# single-element container
+app_decision = st.empty()
 
-        # explanation from model via API call (via FastAPI)
+with app_decision.container():
+    st.markdown("### Decision & rationale")
+    #two columns
+    metrics, explanation = st.columns([1,6])
 
-        exp_url = 'http://127.0.0.1:8000/scoring_explanation'
+    # predictions from model via API call (via FastAPI)
+    pred_url = 'http://127.0.0.1:8000/scoring_prediction'
 
-        exp_response = requests.post(url, data=index_candidate[0])
+    transformed_candidate_data = transformed_new_df.loc[index_candidate]
+    pred_response = requests.post(pred_url, json=transformed_candidate_data.to_dict(orient='records')[0])
 
-        candidate_shap_values = exp_response.content.decode()
+    default_proba = float(pred_response.content.decode())
+    #default_proba = float(default_proba)
+    default_threshold = 0.3
 
-        # function enabling shap plot in html
-        def st_shap(plot, height=None):
-            shap_html = f"<head>{shap.getjs()}</head><body>{plot.html()}</body>"
-            components.html(shap_html, height=height)
+    decision = "NO ❌" if default_proba >= default_threshold else "YES ✅"
 
-        # visualize the candidate's decision explanation
-        st_shap(shap.force_plot(default_proba, candidate_shap_values, transformed_candidate_data,
-                                link='logit', out_names='risque de défaut'), height=400)
-            
+    with metrics:
+        # fill in those columns with respective metrics or info
+        st.metric(
+            label="Should we lend?",
+            value = decision
+            #delta=round(avg_age) - 10,
+        )
+        #with risk:
+        st.metric(
+            label="What is the default risk?",
+            value="{:.0%}".format(default_proba),
+            delta="{:.0%}".format(default_proba-default_threshold) + " vs threshold",
+            delta_color="inverse"
+        )
 
+#explanation = st.empty()
+
+    with explanation:
+        with st.spinner('SHAP waterfall plot creation in progress...'):
+            # manual retrieval loading the saved shape values
+            shap_values_frame = joblib.load('shap_sample.joblib')
+            shap_values_array = shap_values_frame.to_numpy()
+            candidate_shap_values = shap_values_array[index_candidate[0]]
+            #st.dataframe(shap_values_frame)
+
+            # explanation from model via API call (via FastAPI)
+            #item = {"item_id": index_candidate[0]}
+            #exp_url = 'http://127.0.0.1:8000/scoring_explanation'
+            #exp_response = requests.post(exp_url, json=item) #data=json.dumps(item))
+            #st.write(exp_response.json())
+            #candidate_shap_values = exp_response.content.decode()
+                
+            #st.write(exp_response.text)
+
+            # visualize the candidate's decision explanation
+            #@st.cache(hash_funcs={matplotlib.figure.Figure: lambda _: None})
+            plot = shap.force_plot(default_proba, 
+                                candidate_shap_values,
+                                list(shap_values_frame.columns),
+                                link="logit",
+                                matplotlib=True)
+            st_shap(plot, height=200, width=1200)  
+
+st.divider()
 # single-element container
 past_applications = st.empty()
 
@@ -192,25 +203,41 @@ with past_applications.container():
         
     options = st.multiselect(
         'Select a comparison scope from the caracteristics below (you can pick more than one)',
-        ['Age (5yr bucket)', 'Gender', 'Family', 'Education', 'Income type']) 
+        ['Age (5yr bucket)', 'Population density', 'Discrepancy', 'Education', 'Credit (10k bucket)', 
+         'Income (10k bucket)', 'Income type', 'Employment tenure (2yr bucket)', 'Realty ownership', 'Car ownership']) 
     
-    similars = old_df
+    similars = get_old_data(model_features) #replace with top 20 features in terms of importance + target
 
     if 'Age (5yr bucket)' in options:
         age_delta = -similars['DAYS_BIRTH']/365 - age 
         similars = similars.loc[abs(age_delta)<5,:]
     else: pass
-    if 'Gender' in options:
-        similars = similars.loc[similars['CODE_GENDER'] == gender,:]
-    else: pass
-    if 'Family' in options:
-        similars = similars.loc[similars['NAME_FAMILY_STATUS'] == family,:]
-    else: pass
     if 'Education' in options:
         similars = similars.loc[similars['NAME_EDUCATION_TYPE'] == education,:]
     else: pass
+    if 'Income' in options:
+        income_delta = similars['AMT_INCOME_TOTAL'] - income
+        similars = similars.loc[abs(income_delta)<10000,:]
+    else: pass
     if 'Income type' in options:
-        similars = similars.loc[similars['NAME_INCOME_TYPE'] == income,:]
+        similars = similars.loc[similars['NAME_INCOME_TYPE'] == income_type,:]
+    else: pass
+    if 'Employment tenure (2yr bucket)' in options:
+        tenure_delta = -similars['DAYS_EMPLOYED']/365 - tenure 
+        similars = similars.loc[abs(tenure_delta)<2,:]
+    else: pass
+    if 'Credit' in options:
+        credit_delta = similars['AMT_CREDIT'] - credit
+        similars = similars.loc[abs(credit_delta)<10000,:]
+    else: pass
+    if 'Realty ownership' in options:
+        similars = similars.loc[similars['OWN_REALTY'] == realty,:]
+    else: pass
+    if 'Car ownership' in options:
+        similars = similars.loc[similars['OWN_CAR'] == car,:]
+    else: pass
+    if 'Discrepancy' in options:
+        similars = similars.loc[similars['REG_REGION_NOT_LIVE_REGION'] == region_disc,:]
     else: pass
 
     if options:

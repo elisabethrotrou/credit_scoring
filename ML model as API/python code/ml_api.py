@@ -219,14 +219,28 @@ def scoring_pred(input_parameters: model_input):
 
     return JSONResponse(content=default_risk)
 
+####################explanation########################
+class shap_input(BaseModel):
+    item_id : int
+
 # loading the saved shape values
 shap_values_frame = joblib.load('shap_sample.joblib')
 
 # explanation endpoint
+#@api.get('/scoring_explanation/{item_id}')
 @api.post('/scoring_explanation')
+async def scoring_exp(request: Request):
+    return await request.json()
+    #data = json.loads(request.json())
+    #index = data['item_id'][0]
+    #print(index)
 
-def scoring_exp(input_index):
-    candidate_shap_row = shap_values_frame.iloc[input_index]
-    candidate_shap_values = jsonable_encoder(candidate_shap_row)
+#def scoring_exp(item: shap_input):
+#    print(item)
 
-    return JSONResponse(content=candidate_shap_values)
+    #candidate_shap_row = shap_values_frame[input_index]
+    #candidate_shap_values = jsonable_encoder(candidate_shap_row)
+
+    #return JSONResponse(content=candidate_shap_values)
+
+    #return {"item_id": item_id}
