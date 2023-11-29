@@ -20,7 +20,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 	content = {'status_code': 10422, 'message': exc_str, 'data': None}
 	return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
-class model_input(BaseModel):
+class ModelInput(BaseModel):
     NAME_CONTRACT_TYPE : object
     NAME_INCOME_TYPE : object
     NAME_EDUCATION_TYPE : object
@@ -147,7 +147,7 @@ def model_predict_proba(data_asarray):
 # prediction endpoint
 @api.post('/scoring_prediction')
 
-def scoring_pred(input_parameters: model_input):
+def scoring_pred(input_parameters: ModelInput):
     input_data = input_parameters.json()
     input_dict = json.loads(input_data)
 
@@ -225,22 +225,17 @@ class shap_input(BaseModel):
 
 # loading the saved shape values
 shap_values_frame = joblib.load('shap_sample.joblib')
+shap_values_array = shap_values_frame.to_numpy()
 
 # explanation endpoint
 #@api.get('/scoring_explanation/{item_id}')
 @api.post('/scoring_explanation')
 async def scoring_exp(request: Request):
-    return await request.json()
-    #data = json.loads(request.json())
-    #index = data['item_id'][0]
-    #print(index)
-
-#def scoring_exp(item: shap_input):
-#    print(item)
-
-    #candidate_shap_row = shap_values_frame[input_index]
-    #candidate_shap_values = jsonable_encoder(candidate_shap_row)
-
-    #return JSONResponse(content=candidate_shap_values)
-
-    #return {"item_id": item_id}
+    data = await request.json()
+    index = data['item_id']
+    candidate_shap_row = shap_values_array[index]
+    zip_iterator = zip(ordered_cols, candidate_shap_row.tolist())
+    candidate_shap_dict = dict(zip_iterator)
+    candidate_shap_values = jsonable_encoder(candidate_shap_dict)
+    
+    return JSONResponse(content=candidate_shap_values) #index
