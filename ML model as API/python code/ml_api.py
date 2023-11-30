@@ -220,9 +220,6 @@ def scoring_pred(input_parameters: ModelInput):
     return JSONResponse(content=default_risk)
 
 ####################explanation########################
-class shap_input(BaseModel):
-    item_id : int
-
 # loading the saved shape values
 shap_values_frame = joblib.load('shap_sample.joblib')
 shap_values_array = shap_values_frame.to_numpy()

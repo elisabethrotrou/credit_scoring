@@ -130,10 +130,10 @@ with app_decision.container():
     pred_url = 'http://127.0.0.1:8000/scoring_prediction'
 
     transformed_candidate_data = transformed_new_df.loc[index_candidate]
+    st.write(transformed_candidate_data)
     pred_response = requests.post(pred_url, json=transformed_candidate_data.to_dict(orient='records')[0])
 
     default_proba = float(pred_response.content.decode())
-    #default_proba = float(default_proba)
     default_threshold = 0.3
 
     decision = "NO ❌" if default_proba >= default_threshold else "YES ✅"
