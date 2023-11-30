@@ -19,7 +19,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python 3.10
+    - name: Set up Python
       uses: actions/setup-python@v3
       with:
         python-version: "3.9.13"
@@ -38,3 +38,6 @@ jobs:
       run: |
         pip install pytest pytest-cov
         pytest tests.py --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
+    - name: Generate Coverage Report  
+      run: |  
+        coverage report -m
