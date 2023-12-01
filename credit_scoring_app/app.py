@@ -1,4 +1,4 @@
-import time
+#import time
 import numpy as np  # np mean, np random
 import pandas as pd  # read csv, df manipulation
 import plotly.express as px  # interactive charts
@@ -7,8 +7,8 @@ import streamlit as st  # 🎈 data web app development
 import requests # for API calls
 import shap
 from streamlit_shap import st_shap
-import streamlit.components.v1 as components
-import json
+#import streamlit.components.v1 as components
+#import json
 import re
 import joblib
 

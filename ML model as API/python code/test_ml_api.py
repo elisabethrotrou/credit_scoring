@@ -1,8 +1,10 @@
-from ml_api import model_predict_proba, scoring_model, shap_values_array
-import pytest
+from ml_api import model_predict_proba, shap_values_array
 import random
 
-class TestClass:        
+class TestClass:
+    def __init__(self, name):
+        self.name = name
+
     def test_risk_proba():
         data_as_array = [["Cash loans","Working","Higher education","Married","House / apartment","TUESDAY","Kindergarten",
                     0,1,0,0,135000.0,568800.0,0.0189,-19241,-2329,-5170,-812,1,1,0,1,0,1,2,2,18,0,0,0,0,0,0,0,1,0,0,
