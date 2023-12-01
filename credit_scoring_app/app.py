@@ -130,7 +130,7 @@ with app_decision.container():
     pred_url = 'http://127.0.0.1:8000/scoring_prediction'
 
     transformed_candidate_data = transformed_new_df.loc[index_candidate]
-    st.write(transformed_candidate_data)
+    
     pred_response = requests.post(pred_url, json=transformed_candidate_data.to_dict(orient='records')[0])
 
     default_proba = float(pred_response.content.decode())
@@ -158,34 +158,29 @@ with app_decision.container():
             st.write("The 2 charts below shows the most *impactful* features for predicting a default risk: the first chart describes the general case, when the second one describes how each feature contributes to the default risk prediction for this specific candidate.")
             st.image("./input/feature_importance.png")
         with st.spinner('SHAP waterfall plot creation in progress...'):
+            
             # manual retrieval loading the saved shape values
-            shap_values_frame = joblib.load('shap_sample.joblib')
-            shap_values_array = shap_values_frame.to_numpy()
-            candidate_shap_values = shap_values_array[index_candidate[0]]
+            #shap_values_frame = joblib.load('shap_sample.joblib')
+            #shap_values_array = shap_values_frame.to_numpy()
+            #candidate_shap_values = shap_values_array[index_candidate[0]]
 
             # explanation from model via API call (via FastAPI)
             item = {"item_id": index_candidate[0]}
             exp_url = 'http://127.0.0.1:8000/scoring_explanation'
             exp_response = requests.post(exp_url, json=item) #data=json.dumps(item))
-            #st.write(exp_response.json())
-            #with open(exp_response.text) as candidate_shap_json:
             candidate_shap_dict = exp_response.json()
-            #candidate_shap = json.loads(exp_response.json()) #exp_response.content.decode()
             candidate_shap_values_API = np.array(list(candidate_shap_dict.values()))
             candidate_shap_features_API = list(candidate_shap_dict.keys())
-                
-            #st.write(candidate_shap_values_API)
 
             # visualize the candidate's decision explanation
-            #@st.cache(hash_funcs={matplotlib.figure.Figure: lambda _: None})
             plot = shap.force_plot(default_proba, 
                                 candidate_shap_values_API,
                                 #list(shap_values_frame.columns),
                                 candidate_shap_features_API,
                                 link="logit",
-                                matplotlib=True)
-            st_shap(plot, height=200, width=1200)  
-
+                                #matplotlib=True
+                                )
+            st_shap(plot, height=120, width=1100)  
 st.divider()
 # single-element container
 past_applications = st.empty()
