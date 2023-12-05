@@ -156,7 +156,7 @@ with app_decision.container():
 
     with explanation:
         with st.expander("See explanation"):
-            st.write("The 2 charts below shows the most *impactful* features for predicting a default risk: the first chart describes the general case, when the second one describes how each feature contributes to the default risk prediction for this specific candidate.")
+            st.write("The 2 charts below show the most *impactful* features for predicting a default risk: the first chart describes the general case, when the second one describes how each feature contributes to the default risk prediction for this specific candidate.")
             st.image("./feature_importance.png")
         with st.spinner('SHAP waterfall plot creation in progress...'):
             
