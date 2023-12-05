@@ -29,5 +29,5 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi 
     - name: Test API with pytest
-      run: pytest API/test_ml_api.py
+      run: pytest
       working-directory: API
