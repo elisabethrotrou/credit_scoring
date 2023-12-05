@@ -221,18 +221,31 @@ def scoring_pred(input_parameters: ModelInput):
 
 ####################explanation#########################
 # loading the saved shape values
-shap_values_frame = joblib.load('shap_sample.joblib')
-shap_values_array = shap_values_frame.to_numpy()
+#shap_values_frame = joblib.load('shap_sample.joblib')
+#shap_values_array = shap_values_frame.to_numpy()
 
-# explanation endpoint
-#@api.get('/scoring_explanation/{item_id}')
+explainer = joblib.load('explainer_test100.joblib')
+
+# explanation endpoint (old version)
+#@api.post('/scoring_explanation')
+#async def scoring_exp(request: Request):
+#    data = await request.json()
+#    index = data['item_id']
+#    candidate_shap_row = shap_values_array[index]
+#    zip_iterator = zip(ordered_cols, candidate_shap_row.tolist())
+#    candidate_shap_dict = dict(zip_iterator)
+#    candidate_shap_values = jsonable_encoder(candidate_shap_dict)
+    
+#    return JSONResponse(content=candidate_shap_values)
+
+# explanation endpoint (new version)
 @api.post('/scoring_explanation')
 async def scoring_exp(request: Request):
     data = await request.json()
     index = data['item_id']
-    candidate_shap_row = shap_values_array[index]
-    zip_iterator = zip(ordered_cols, candidate_shap_row.tolist())
+    candidate_shap_info = explainer[index].values[:,1]
+    zip_iterator = zip(ordered_cols, candidate_shap_info.tolist())
     candidate_shap_dict = dict(zip_iterator)
     candidate_shap_values = jsonable_encoder(candidate_shap_dict)
     
-    return JSONResponse(content=candidate_shap_values) #index
+    return JSONResponse(content=candidate_shap_values)

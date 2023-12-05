@@ -1,8 +1,8 @@
 #import time
 import numpy as np  # np mean, np random
 import pandas as pd  # read csv, df manipulation
-import plotly.express as px  # interactive charts
-import matplotlib.pyplot as plt
+#import plotly.express as px  # interactive charts
+#import matplotlib.pyplot as plt
 import streamlit as st  # 🎈 data web app development
 import requests # for API calls
 import shap
@@ -10,7 +10,7 @@ from streamlit_shap import st_shap
 #import streamlit.components.v1 as components
 #import json
 import re
-import joblib
+#import joblib
 
 st.set_page_config(
     page_title="Client scoring dashboard",
@@ -24,13 +24,13 @@ st.set_page_config(
 # read csv from a URL
 @st.cache_data
 def get_old_data(cols) -> pd.DataFrame:
-    df = pd.read_csv('./input/application_train.csv', usecols=cols)
+    df = pd.read_csv('./application_train.csv', usecols=cols)
     df = df[:10000] #sampling data to fit within limit (maxMessageSize = 300) since no access to config
     return df
 
 def get_new_data() -> pd.DataFrame:
-    df = pd.read_csv('./input/application_test.csv')
-    df = df[:1000] #sampling data to match with test data passed in shap_values
+    df = pd.read_csv('./application_test.csv')
+    df = df[:100] #sampling data to match with test data passed in shap_values
     return df
 
 def prep_data(df, cols):
@@ -156,7 +156,7 @@ with app_decision.container():
     with explanation:
         with st.expander("See explanation"):
             st.write("The 2 charts below shows the most *impactful* features for predicting a default risk: the first chart describes the general case, when the second one describes how each feature contributes to the default risk prediction for this specific candidate.")
-            st.image("./input/feature_importance.png")
+            st.image("./feature_importance.png")
         with st.spinner('SHAP waterfall plot creation in progress...'):
             
             # manual retrieval loading the saved shape values
@@ -173,7 +173,8 @@ with app_decision.container():
             candidate_shap_features_API = list(candidate_shap_dict.keys())
 
             # visualize the candidate's decision explanation
-            plot = shap.force_plot(default_proba, 
+            #plot = shap.plots.bar(candidate_shap_values_API, candidate_shap_features_API)
+            plot = shap.force_plot(-1.67494564, #explainer.expected_value[1]
                                 candidate_shap_values_API,
                                 #list(shap_values_frame.columns),
                                 candidate_shap_features_API,
@@ -255,4 +256,3 @@ with past_applications.container():
         else:
             #similars = similars.set_index('SK_ID_CURR', drop=True, inplace=True) 
             st.dataframe(similars)
-    #time.sleep(1)
