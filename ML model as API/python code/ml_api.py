@@ -11,6 +11,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 
+# creating the API
 api = FastAPI()
 
 @api.exception_handler(RequestValidationError)
@@ -143,7 +144,6 @@ def model_predict_proba(data_asarray):
     data_asframe =  pd.DataFrame(data_asarray, columns = ordered_cols)
     return scoring_model.predict_proba(data_asframe)
 
-# creating the API
 # prediction endpoint
 @api.post('/scoring_prediction')
 
