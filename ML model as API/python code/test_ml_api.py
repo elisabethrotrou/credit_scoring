@@ -1,10 +1,10 @@
-from ml_api import shap_values_array, model_predict_proba
+from ml_api import explanation, model_predict_proba
 import random
 
 def test_candidate_row():
-    index = random.randint(0,1000)
-    row = shap_values_array[index]
-    assert row.shape == (55,)
+    index = random.randint(0,100)
+    info = explanation[index].values[:,1]
+    assert info.shape == (55,)
 
 def test_risk_proba():
     data_as_array = [["Cash loans","Working","Higher education","Married","House / apartment","TUESDAY","Kindergarten",

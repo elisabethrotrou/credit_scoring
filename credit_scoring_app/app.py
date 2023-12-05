@@ -30,12 +30,13 @@ def get_old_data(cols) -> pd.DataFrame:
 
 def get_new_data() -> pd.DataFrame:
     df = pd.read_csv('./application_test.csv')
-    df = df[:100] #sampling data to match with test data passed in shap_values
+    df = df.iloc[:116,:] #sampling data to match with test data passed in shap_values
+    df = df[df['CODE_GENDER'] != 'XNA']
+    df = df[df['ORGANIZATION_TYPE'] != 'XNA']
+    df = df.reset_index(drop=True)
     return df
 
 def prep_data(df, cols):
-    df = df[df['CODE_GENDER'] != 'XNA']
-    df = df[df['ORGANIZATION_TYPE'] != 'XNA']
 
     # Categorical features with Binary encode (0 or 1; two categories)
     for bin_feature in ['CODE_GENDER', 'FLAG_OWN_CAR', 'FLAG_OWN_REALTY']:
@@ -53,7 +54,7 @@ def prep_data(df, cols):
     #df['INCOME_PER_PERSON'] = df['AMT_INCOME_TOTAL'] / df['CNT_FAM_MEMBERS']
     #df['ANNUITY_INCOME_PERC'] = df['AMT_ANNUITY'] / df['AMT_INCOME_TOTAL']
     #df['PAYMENT_RATE'] = df['AMT_ANNUITY'] / df['AMT_CREDIT']
-   
+
     return df
 
 model_features = ['AMT_CREDIT','AMT_INCOME_TOTAL','CNT_CHILDREN','CODE_GENDER','DAYS_BIRTH','DAYS_EMPLOYED',

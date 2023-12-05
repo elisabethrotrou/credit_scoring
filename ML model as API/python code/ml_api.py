@@ -224,7 +224,7 @@ def scoring_pred(input_parameters: ModelInput):
 #shap_values_frame = joblib.load('shap_sample.joblib')
 #shap_values_array = shap_values_frame.to_numpy()
 
-explainer = joblib.load('explainer_test100.joblib')
+explanation = joblib.load('explanation_test100.joblib')
 
 # explanation endpoint (old version)
 #@api.post('/scoring_explanation')
@@ -243,7 +243,7 @@ explainer = joblib.load('explainer_test100.joblib')
 async def scoring_exp(request: Request):
     data = await request.json()
     index = data['item_id']
-    candidate_shap_info = explainer[index].values[:,1]
+    candidate_shap_info = explanation[index].values[:,1]
     zip_iterator = zip(ordered_cols, candidate_shap_info.tolist())
     candidate_shap_dict = dict(zip_iterator)
     candidate_shap_values = jsonable_encoder(candidate_shap_dict)
