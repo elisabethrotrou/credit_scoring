@@ -4,7 +4,7 @@ import joblib
 import json
 import logging
 import pandas as pd
-import numpy as np
+#import numpy as np
 from sklearn import set_config
 set_config(transform_output="pandas")
 from fastapi.exceptions import RequestValidationError
