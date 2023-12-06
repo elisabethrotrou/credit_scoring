@@ -34,6 +34,7 @@ jobs:
       run:
         working-directory: app
     steps:
+    - uses: actions/checkout@v4
     - name: Install dependencies app
       run: pip install -r requirements.txt
 
@@ -44,6 +45,7 @@ jobs:
       run:
         working-directory: API
     steps:
+    - uses: actions/checkout@v4
     - name: Install dependencies api
       run: pip install -r requirements.txt
     - name: Test API with pytest
