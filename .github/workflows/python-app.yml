@@ -18,12 +18,12 @@ jobs:
       with:
         python-version: "3.10"
     - uses: actions/cache@v3
-    id: cache
-    with:
-      path: ~/.cache/pip
-      key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.*') }}
-      restore-keys: | 
-        ${{ runner.os }}-pip-
+      id: cache
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.*') }}
+        restore-keys: | 
+          ${{ runner.os }}-pip-
 
   app-build:      
     runs-on: ubuntu-latest
