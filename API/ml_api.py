@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 
 # creating the API
-api = FastAPI(__name__)
+api = FastAPI()
 
 @api.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
