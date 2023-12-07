@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 
 # creating the API
-api = FastAPI()
+api = FastAPI(__name__)
 
 @api.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -249,3 +249,7 @@ async def scoring_exp(request: Request):
     candidate_shap_values = jsonable_encoder(candidate_shap_dict)
     
     return JSONResponse(content=candidate_shap_values)
+
+if __name__ == '__main__':
+
+    api.run(debug=True, host='0.0.0.0', port=8000)

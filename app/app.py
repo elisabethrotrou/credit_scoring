@@ -128,11 +128,12 @@ with app_decision.container():
     metrics, explanation = st.columns([1,6])
 
     # predictions from model via API call (via FastAPI)
-    pred_url = 'http://127.0.0.1:8000/scoring_prediction'
-
+    url = 'http://127.0.0.1:8000'
+    #pred_url = 'http://0.0.0.0:8000/scoring_prediction'
+    pred_endpoint = '/scoring_prediction'
     transformed_candidate_data = transformed_new_df.loc[index_candidate]
     
-    pred_response = requests.post(pred_url, json=transformed_candidate_data.to_dict(orient='records')[0])
+    pred_response = requests.post(url+pred_endpoint, json=transformed_candidate_data.to_dict(orient='records')[0])
 
     default_proba = float(pred_response.content.decode())
     default_threshold = 0.3
@@ -167,8 +168,9 @@ with app_decision.container():
 
             # explanation from model via API call (via FastAPI)
             item = {"item_id": index_candidate[0]}
-            exp_url = 'http://127.0.0.1:8000/scoring_explanation'
-            exp_response = requests.post(exp_url, json=item) #data=json.dumps(item))
+            #exp_url = 'http://0.0.0.0:8000/scoring_explanation'
+            exp_endpoint = '/scoring_explanation'
+            exp_response = requests.post(url+exp_endpoint, json=item) #data=json.dumps(item))
             candidate_shap_dict = exp_response.json()
             candidate_shap_values_API = np.array(list(candidate_shap_dict.values()))
             candidate_shap_features_API = list(candidate_shap_dict.keys())
