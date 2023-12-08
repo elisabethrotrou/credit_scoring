@@ -252,4 +252,4 @@ async def scoring_exp(request: Request):
 
 if __name__ == '__main__':
 
-    api.run(debug=True, host='0.0.0.0', port=8000)
+    api.run(host='0.0.0.0', port=8000)

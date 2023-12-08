@@ -1,0 +1,31 @@
+version: '2.22.0' # specify docker-compose version : v2.22.0-desktop.2 from Docker Desktop interface
+services: # services to run
+  api: # name of the first service
+    build: 
+      context: ./api # specify the directory of the Dockerfile
+      dockerfile: Dockerfile # specify the Dockerfile name
+    ports:
+      - "8000:8000" # specify port mapping
+    networks:
+      - deploy_network
+    container_name: api_compose
+      
+  app:
+    build:
+      context: ./app # specify the directory of the Dockerfile
+      dockerfile: Dockerfile # specify the Dockerfile name
+    ports:
+      - "8501:8501" # specify port mapping
+    depends_on:
+      - api # specify service dependencies
+    networks:
+      - deploy_network
+    container_name: app_compose
+
+networks:
+  deploy_network:
+    driver: bridge
+
+volumes:
+  api:
+    driver: local

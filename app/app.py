@@ -128,7 +128,7 @@ with app_decision.container():
     metrics, explanation = st.columns([1,6])
 
     # predictions from model via API call (via FastAPI)
-    url = 'http://127.0.0.1:8000'
+    url = 'http://api:8000'
     #pred_url = 'http://0.0.0.0:8000/scoring_prediction'
     pred_endpoint = '/scoring_prediction'
     transformed_candidate_data = transformed_new_df.loc[index_candidate]
