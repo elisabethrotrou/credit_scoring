@@ -8,6 +8,7 @@ services: # services to run
       - "8000:8000" # specify port mapping
     networks:
       - deploy_network
+    #image: elisabethr/api
     container_name: api_compose
       
   app:
@@ -20,6 +21,7 @@ services: # services to run
       - api # specify service dependencies
     networks:
       - deploy_network
+    #image: elisabethr/app
     container_name: app_compose
 
 networks:
