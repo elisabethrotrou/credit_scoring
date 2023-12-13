@@ -21,8 +21,8 @@ RUN pip install -r requirements.txt
 COPY . .
 
 # copy input data only on GitHub
-RUN wget https://s3-eu-west-1.amazonaws.com/static.oc-static.com/prod/courses/files/Parcours_data_scientist/Projet+-+Impl%C3%A9menter+un+mod%C3%A8le+de+scoring/Projet+Mise+en+prod+-+home-credit-default-risk.zip
-RUN unzip Projet+Mise+en+prod+-+home-credit-default-risk
+#RUN wget https://s3-eu-west-1.amazonaws.com/static.oc-static.com/prod/courses/files/Parcours_data_scientist/Projet+-+Impl%C3%A9menter+un+mod%C3%A8le+de+scoring/Projet+Mise+en+prod+-+home-credit-default-risk.zip
+#RUN unzip Projet+Mise+en+prod+-+home-credit-default-risk
 
 # define the port number the container should expose
 EXPOSE 8501 
