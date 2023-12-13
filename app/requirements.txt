@@ -5,6 +5,7 @@
 matplotlib==3.8.2
 numpy== 1.22.0 #1.21.0
 pandas==1.5.3
+plotly-express==0.4.1
 #plotly==5.18.0
 #pydantic==1.10.11
 #pytest==7.4.3

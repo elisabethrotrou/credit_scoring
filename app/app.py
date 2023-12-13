@@ -1,7 +1,7 @@
 #import time
 import numpy as np  # np mean, np random
 import pandas as pd  # read csv, df manipulation
-#import plotly.express as px  # interactive charts
+import plotly.express as px  # interactive charts
 #import matplotlib.pyplot as plt
 import streamlit as st  # 🎈 data web app development
 import requests # for API calls
@@ -118,6 +118,74 @@ with info2:
         else: st.write("does not own their car")
 
 st.divider()
+# single-element container
+past_applications = st.empty()
+
+with past_applications.container():
+
+    st.markdown("### Similar past applications")
+        
+    #changing multi-select labels color from red which looks alarming
+    st.markdown(
+    """
+    <style>
+    span[data-baseweb="tag"] {
+    background-color: blue !important;
+    }
+    </style>
+    """,
+        unsafe_allow_html=True,
+    )
+        
+    options = st.multiselect(
+        'Select a comparison scope from the caracteristics below (you can pick more than one)',
+        ['Age (5yr bucket)', 'Education', 'Income type', 'Employment tenure (2yr bucket)']) 
+    
+    similars = get_old_data(model_features + ["TARGET"]) #replace with top 20 features in terms of importance + target
+
+    if 'Age (5yr bucket)' in options:
+        age_delta = -similars['DAYS_BIRTH']/365 - age 
+        similars = similars.loc[abs(age_delta)<5,:]
+    else: pass
+    if 'Education' in options:
+        similars = similars.loc[similars['NAME_EDUCATION_TYPE'] == education,:]
+    else: pass
+    if 'Income type' in options:
+        similars = similars.loc[similars['NAME_INCOME_TYPE'] == income_type,:]
+    else: pass
+    if 'Employment tenure (2yr bucket)' in options:
+        tenure_delta = -similars['DAYS_EMPLOYED']/365 - tenure 
+        similars = similars.loc[abs(tenure_delta)<2,:]
+    else: pass
+
+    if similars.shape[0] == 0: 
+        st.write(":red[The comparison scope is too narrow ; please pick less options above] :arrow_double_up:")
+    else: 
+        st.write(similars.shape[0], "similar applications and relative distributions of major criteria to review below :arrow_double_down:")
+        # Create tabs
+        tab1, tab2, tab3 = st.tabs(["income distribution", "credit distribution", "table with values"])
+        with tab1:
+            # Create histogram
+            fig = px.histogram(
+                    similars,
+                    x='AMT_INCOME_TOTAL',
+                    color='TARGET',
+                    )
+            fig.add_vline(x=income, line_dash = 'dash', line_color = 'firebrick', annotation_text="candidate")
+            st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+        with tab2:
+            # Create histogram
+            fig2 = px.histogram(
+                    similars,
+                    x='AMT_CREDIT',
+                    color='TARGET',
+                    )
+            fig2.add_vline(x=credit, line_dash = 'dash', line_color = 'firebrick', annotation_text="candidate")
+            st.plotly_chart(fig2, theme="streamlit", use_container_width=True)            
+        with tab3:
+            st.dataframe(similars)
+
+st.divider()
 
 # single-element container
 app_decision = st.empty()
@@ -136,7 +204,7 @@ with app_decision.container():
     pred_response = requests.post(url+pred_endpoint, json=transformed_candidate_data.to_dict(orient='records')[0])
 
     default_proba = float(pred_response.content.decode())
-    default_threshold = 0.3
+    default_threshold = 0.4
 
     decision = "NO ❌" if default_proba >= default_threshold else "YES ✅"
 
@@ -185,77 +253,3 @@ with app_decision.container():
                                 #matplotlib=True
                                 )
             st_shap(plot, height=120, width=1100)  
-st.divider()
-# single-element container
-past_applications = st.empty()
-
-with past_applications.container():
-
-    st.markdown("### Similar past applications")
-        
-    #changing multi-select labels color from red which looks alarming
-    st.markdown(
-    """
-    <style>
-    span[data-baseweb="tag"] {
-    background-color: blue !important;
-    }
-    </style>
-    """,
-        unsafe_allow_html=True,
-    )
-        
-    options = st.multiselect(
-        'Select a comparison scope from the caracteristics below (you can pick more than one)',
-        ['Age (5yr bucket)', 'Population density', 'Discrepancy', 'Education', 'Credit (10k bucket)', 
-         'Income (10k bucket)', 'Income type', 'Employment tenure (2yr bucket)', 'Realty ownership', 'Car ownership']) 
-    
-    similars = get_old_data(model_features) #replace with top 20 features in terms of importance + target
-
-    if 'Age (5yr bucket)' in options:
-        age_delta = -similars['DAYS_BIRTH']/365 - age 
-        similars = similars.loc[abs(age_delta)<5,:]
-    else: pass
-    if 'Education' in options:
-        similars = similars.loc[similars['NAME_EDUCATION_TYPE'] == education,:]
-    else: pass
-    if 'Income' in options:
-        income_delta = similars['AMT_INCOME_TOTAL'] - income
-        similars = similars.loc[abs(income_delta)<10000,:]
-    else: pass
-    if 'Income type' in options:
-        similars = similars.loc[similars['NAME_INCOME_TYPE'] == income_type,:]
-    else: pass
-    if 'Employment tenure (2yr bucket)' in options:
-        tenure_delta = -similars['DAYS_EMPLOYED']/365 - tenure 
-        similars = similars.loc[abs(tenure_delta)<2,:]
-    else: pass
-    if 'Credit' in options:
-        credit_delta = similars['AMT_CREDIT'] - credit
-        similars = similars.loc[abs(credit_delta)<10000,:]
-    else: pass
-    if 'Realty ownership' in options:
-        similars = similars.loc[similars['OWN_REALTY'] == realty,:]
-    else: pass
-    if 'Car ownership' in options:
-        similars = similars.loc[similars['OWN_CAR'] == car,:]
-    else: pass
-    if 'Discrepancy' in options:
-        similars = similars.loc[similars['REG_REGION_NOT_LIVE_REGION'] == region_disc,:]
-    else: pass
-
-    if options:
-        if similars.shape[0] != 0: 
-            st.write(similars.shape[0], "similar applications to review below :arrow_double_down:")
-        else: 
-            st.write(":red[The comparison scope is too narrow ; please pick less options above] :arrow_double_up:")
-    else:pass
-    
-    if not options:
-        pass
-    else:
-        if similars.shape[0] == 0: 
-            pass
-        else:
-            #similars = similars.set_index('SK_ID_CURR', drop=True, inplace=True) 
-            st.dataframe(similars)
