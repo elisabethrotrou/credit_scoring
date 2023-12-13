@@ -66,4 +66,4 @@ jobs:
             docker rmi credit_scoring-app
             docker rmi credit_scoring-api
             docker system prune -f
-            docker compose up
+            docker compose up -d
