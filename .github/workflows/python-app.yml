@@ -62,4 +62,8 @@ jobs:
           script: |
             cd credit_scoring
             git pull ${{ secrets.GH_CONNECTION }}
+            docker compose down
+            docker rmi credit_scoring-app
+            docker rmi credit_scoring-api
+            docker system prune -f
             docker compose up
