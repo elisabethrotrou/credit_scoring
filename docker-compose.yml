@@ -2,7 +2,7 @@ version: '2.22.0' # specify docker-compose version : v2.22.0-desktop.2 from Dock
 services: # services to run
   api: # name of the first service
     build: 
-      context: ./api # specify the directory of the Dockerfile
+      context: ./API # specify the directory of the Dockerfile
       dockerfile: ./Dockerfile # specify the Dockerfile name
     ports:
       - "8000:8000" # specify port mapping
