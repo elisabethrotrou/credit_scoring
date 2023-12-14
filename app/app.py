@@ -1,25 +1,17 @@
-#import time
 import numpy as np  # np mean, np random
 import pandas as pd  # read csv, df manipulation
 import plotly.express as px  # interactive charts
-#import matplotlib.pyplot as plt
 import streamlit as st  # 🎈 data web app development
 import requests # for API calls
 import shap
 from streamlit_shap import st_shap
-#import streamlit.components.v1 as components
-#import json
 import re
-#import joblib
 
 st.set_page_config(
     page_title="Client scoring dashboard",
     page_icon=":sleuth_or_spy:",
     layout="wide",
 )
-
-# read csv from a github repo
-#dataset_url = "https://raw.githubusercontent.com/Lexie88rus/bank-marketing-analysis/master/bank.csv"
 
 # read csv from a URL
 @st.cache_data
@@ -51,9 +43,6 @@ def prep_data(df, cols):
     # Some simple new features (percentages)
     df['DAYS_EMPLOYED_PERC'] = df['DAYS_EMPLOYED'] / df['DAYS_BIRTH']
     df['INCOME_CREDIT_PERC'] = df['AMT_INCOME_TOTAL'] / df['AMT_CREDIT']
-    #df['INCOME_PER_PERSON'] = df['AMT_INCOME_TOTAL'] / df['CNT_FAM_MEMBERS']
-    #df['ANNUITY_INCOME_PERC'] = df['AMT_ANNUITY'] / df['AMT_INCOME_TOTAL']
-    #df['PAYMENT_RATE'] = df['AMT_ANNUITY'] / df['AMT_CREDIT']
 
     return df
 
@@ -70,6 +59,7 @@ model_features = ['AMT_CREDIT','AMT_INCOME_TOTAL','CNT_CHILDREN','CODE_GENDER','
          'REG_CITY_NOT_WORK_CITY', 'REG_REGION_NOT_LIVE_REGION', 'REG_REGION_NOT_WORK_REGION','WEEKDAY_APPR_PROCESS_START']
 
 new_df = get_new_data()
+new_df["SK_ID_CURR"] = new_df["SK_ID_CURR"].astype(int)
 transformed_new_df = prep_data(new_df, model_features)
 
 # dashboard title
@@ -98,24 +88,84 @@ realty = new_df.loc[new_df["SK_ID_CURR"] == application_filter,"FLAG_OWN_REALTY"
 car = new_df.loc[new_df["SK_ID_CURR"] == application_filter,"FLAG_OWN_CAR"].iloc[0]
 
 with info1:
-        st.write(age, "years old", 
-                "with", education)
-        #st.write("*Applicant* is a", )
-        #st.write("*Applicant* marital status is", )
-        #st.write("*Applicant* education level is", education)
-        st.write("living in a region of", region_pop, "density level")
+        st.write(age, "years old") 
+        st.write("education level", education)
+        st.write("living in a region of density {:.2f}".format(region_pop))
         if region_disc == 1: st.write("🚨 warning on address discrepancy")
-        st.write("already involved with a credit of", credit)
+        st.write("already involved with a credit of {:,.0f}€".format(credit))
 
 with info2:
-        st.write("employed for past", tenure, "years")
-        st.write("earning a yearly income of", income,
-                 "from", income_type)
-        #st.write("*Applicant* income type is", income)
+        st.write("employed for past {:.1f}".format(tenure), "years")
+        st.write(income_type, "with yearly income of {:,.0f}€".format(income))
         if realty == "Y": st.write("owns their home")
         else: st.write("does not own their home")
         if car == "Y": st.write("owns their car")
         else: st.write("does not own their car")
+
+st.divider()
+
+# single-element container
+app_decision = st.empty()
+
+with app_decision.container():
+    st.markdown("### Decision & rationale")
+    #two columns
+    metrics, explanation = st.columns([1,6])
+
+    # predictions from model via API call (via FastAPI)
+    url = 'http://api:8000'
+    #pred_url = 'http://0.0.0.0:8000/scoring_prediction'
+    pred_endpoint = '/scoring_prediction'
+    transformed_candidate_data = transformed_new_df.loc[index_candidate]
+    
+    pred_response = requests.post(url+pred_endpoint, json=transformed_candidate_data.to_dict(orient='records')[0])
+
+    default_proba = float(pred_response.content.decode())
+    default_threshold = 0.4
+
+    decision = "NO ❌" if default_proba >= default_threshold else "YES ✅"
+
+    with metrics:
+        # fill in those columns with respective metrics or info
+        st.metric(
+            label="Should we lend?",
+            value = decision
+        )
+        
+        st.metric(
+            label="What is the default risk?",
+            value="{:.0%}".format(default_proba),
+            delta="{:.0%}".format(default_proba-default_threshold) + " vs threshold",
+            delta_color="inverse"
+        )
+
+    with explanation:
+        with st.expander("See explanation"):
+            st.write("The 2 charts below show the most *impactful* features for predicting a default risk: the first chart describes the general case, when the second one describes how each feature contributes to the default risk prediction for this specific candidate.")
+            st.image("./feature_importance.png")
+        with st.spinner('SHAP waterfall plot creation in progress...'):
+            
+            # manual retrieval loading the saved shape values
+            #shap_values_frame = joblib.load('shap_sample.joblib')
+            #shap_values_array = shap_values_frame.to_numpy()
+            #candidate_shap_values = shap_values_array[index_candidate[0]]
+
+            # explanation from model via API call (via FastAPI)
+            item = {"item_id": index_candidate[0]}
+            #exp_url = 'http://0.0.0.0:8000/scoring_explanation'
+            exp_endpoint = '/scoring_explanation'
+            exp_response = requests.post(url+exp_endpoint, json=item) 
+            candidate_shap_dict = exp_response.json()
+            candidate_shap_values_API = np.array(list(candidate_shap_dict.values()))
+            candidate_shap_features_API = list(candidate_shap_dict.keys())
+
+            # visualize the candidate's decision explanation
+            plot = shap.force_plot(-1.67494564,
+                                candidate_shap_values_API,
+                                candidate_shap_features_API,
+                                link="logit"
+                                )
+            st_shap(plot, height=120, width=1100)  
 
 st.divider()
 # single-element container
@@ -184,72 +234,3 @@ with past_applications.container():
             st.plotly_chart(fig2, theme="streamlit", use_container_width=True)            
         with tab3:
             st.dataframe(similars)
-
-st.divider()
-
-# single-element container
-app_decision = st.empty()
-
-with app_decision.container():
-    st.markdown("### Decision & rationale")
-    #two columns
-    metrics, explanation = st.columns([1,6])
-
-    # predictions from model via API call (via FastAPI)
-    url = 'http://api:8000'
-    #pred_url = 'http://0.0.0.0:8000/scoring_prediction'
-    pred_endpoint = '/scoring_prediction'
-    transformed_candidate_data = transformed_new_df.loc[index_candidate]
-    
-    pred_response = requests.post(url+pred_endpoint, json=transformed_candidate_data.to_dict(orient='records')[0])
-
-    default_proba = float(pred_response.content.decode())
-    default_threshold = 0.4
-
-    decision = "NO ❌" if default_proba >= default_threshold else "YES ✅"
-
-    with metrics:
-        # fill in those columns with respective metrics or info
-        st.metric(
-            label="Should we lend?",
-            value = decision
-            #delta=round(avg_age) - 10,
-        )
-        
-        st.metric(
-            label="What is the default risk?",
-            value="{:.0%}".format(default_proba),
-            delta="{:.0%}".format(default_proba-default_threshold) + " vs threshold",
-            delta_color="inverse"
-        )
-
-    with explanation:
-        with st.expander("See explanation"):
-            st.write("The 2 charts below show the most *impactful* features for predicting a default risk: the first chart describes the general case, when the second one describes how each feature contributes to the default risk prediction for this specific candidate.")
-            st.image("./feature_importance.png")
-        with st.spinner('SHAP waterfall plot creation in progress...'):
-            
-            # manual retrieval loading the saved shape values
-            #shap_values_frame = joblib.load('shap_sample.joblib')
-            #shap_values_array = shap_values_frame.to_numpy()
-            #candidate_shap_values = shap_values_array[index_candidate[0]]
-
-            # explanation from model via API call (via FastAPI)
-            item = {"item_id": index_candidate[0]}
-            #exp_url = 'http://0.0.0.0:8000/scoring_explanation'
-            exp_endpoint = '/scoring_explanation'
-            exp_response = requests.post(url+exp_endpoint, json=item) #data=json.dumps(item))
-            candidate_shap_dict = exp_response.json()
-            candidate_shap_values_API = np.array(list(candidate_shap_dict.values()))
-            candidate_shap_features_API = list(candidate_shap_dict.keys())
-
-            # visualize the candidate's decision explanation
-            #plot = shap.plots.bar(candidate_shap_values_API, candidate_shap_features_API)
-            plot = shap.force_plot(-1.67494564, #explainer.expected_value[1]
-                                candidate_shap_values_API,
-                                #list(shap_values_frame.columns),
-                                candidate_shap_features_API,
-                                link="logit",
-                                #matplotlib=True
-                                )
-            st_shap(plot, height=120, width=1100)  
