@@ -67,12 +67,13 @@ st.title("Client scoring dashboard")
 
 st.markdown("### Application")
 # top-level filters / radio buttons
-filter, buffer, info1, info2 = st.columns([2,1,2,2])
+filter, buffer, info1, info2 = st.columns([3,1,3,3])
 
 with filter:
     application_filter = st.selectbox("Select an application from the list below", pd.unique(new_df["SK_ID_CURR"]))
     index_candidate = new_df.index[new_df['SK_ID_CURR'] == application_filter].tolist()
-
+    with st.expander("All candidate data"):
+        st.dataframe(new_df.loc[new_df["SK_ID_CURR"] == application_filter,model_features].iloc[0])
 # info from dataframe
 age = -int(new_df.loc[new_df["SK_ID_CURR"] == application_filter,"DAYS_BIRTH"]/365)
 #gender = new_df.loc[new_df["SK_ID_CURR"] == application_filter]["CODE_GENDER"].iloc[0]
@@ -88,19 +89,19 @@ realty = new_df.loc[new_df["SK_ID_CURR"] == application_filter,"FLAG_OWN_REALTY"
 car = new_df.loc[new_df["SK_ID_CURR"] == application_filter,"FLAG_OWN_CAR"].iloc[0]
 
 with info1:
-        st.write(age, "years old") 
-        st.write("education level", education)
-        st.write("living in a region of density {:.2f}".format(region_pop))
-        if region_disc == 1: st.write("🚨 warning on address discrepancy")
-        st.write("asking for a credit of {:,.0f}€".format(credit))
+        st.write("{:.1f}".format(age), "years old") 
+        st.write(education)
+        st.write("Region density {:.2f}".format(region_pop))
+        if region_disc == 1: st.write("🚨 address discrepancy")
+        st.write("Asking credit {:,.0f}€".format(credit))
 
 with info2:
-        st.write("employed for past {:.1f}".format(tenure), "years")
-        st.write(income_type, "with yearly income of {:,.0f}€".format(income))
-        if realty == "Y": st.write("owns their home")
-        else: st.write("does not own their home")
-        if car == "Y": st.write("owns their car")
-        else: st.write("does not own their car")
+        st.write("Employed for {:.1f}".format(tenure), "years")
+        st.write(income_type, "- yearly income {:,.0f}€".format(income))
+        if realty == 1: st.write("Owns their home")
+        else: st.write("Does not own their home")
+        if car == 1: st.write("Owns their car")
+        else: st.write("Does not own their car")
 
 st.divider()
 
@@ -166,6 +167,7 @@ with app_decision.container():
                                 link="logit"
                                 )
             st_shap(plot, height=120, width=1100)  
+
 
 st.divider()
 # single-element container
