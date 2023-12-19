@@ -92,7 +92,7 @@ with info1:
         st.write("education level", education)
         st.write("living in a region of density {:.2f}".format(region_pop))
         if region_disc == 1: st.write("🚨 warning on address discrepancy")
-        st.write("already involved with a credit of {:,.0f}€".format(credit))
+        st.write("asking for a credit of {:,.0f}€".format(credit))
 
 with info2:
         st.write("employed for past {:.1f}".format(tenure), "years")
